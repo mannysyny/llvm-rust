@@ -385,6 +385,102 @@ define void @add_clauses(%Clause* %clauses, i32 %num_clauses) {
     store i32 0, i32* %i
     br label %loop
 
+loop:
+    %i_val = load i32, i32* %i
+    %start_val = load i32, i32* %start
+    %end_val = load i32, i32* %end
+    %next_i_val = add i32 %i_val, 1
+    %next_start_val = add i32 %end_val, 1
+    %next_end_val = add i32 %next_start_val, %num_clauses_per_thread
+    %next_end_val = select i1 %remainder, add i32 %next_end_val, 1, i32 %next_end_val
+    store i32 %next_i_val, i32* %i
+    store i32 %next_start_val, i32* %start
+    store i32 %next_end_val, i32* %end
+    %cond = icmp slt i32 %end_val, %num_clauses
+    br i1 %cond, label %body, label %exit
+
+body:
+    ; Add the clauses to the solver
+    %clause_ptr = getelementptr inbounds %Clause, %Clause* %clauses, i32 %start_val
+    %clause_end_ptr = getelementptr inbounds %Clause, %Clause* %clauses, i32 %end_val
+    br label %inner_loop
+
+inner_loop:
+        %clause_ptr_val = phi %Clause* [ %clause_ptr, %body ], [ %next_clause_ptr_val, %inner_loop ]
+        %clause_end_ptr_val = phi %Clause* [ %clause_end_ptr, %body ], [ %next_clause_end_ptr_val, %inner_loop ]
+        %clause_ptr_val_i64 = ptrtoint %Clause* %clause_ptr_val to i64
+        %clause_end_ptr_val_i64 = ptrtoint %Clause* %clause_end_ptr_val to i64
+        %clause_size = sub i64 %clause_end_ptr_val_i64, %clause_ptr_val_i64
+        %clause_size_i32 = trunc i64 %clause_size to i32
+        %clause_ptr_i8 = bitcast %Clause* %clause_ptr_val to i8*
+        call void @add_clause(%Solver* %solver, i8* %clause_ptr_i8, i32 %clause_size_i32)
+        %next_clause_ptr_val = getelementptr inbounds %Clause, %Clause* %clause_ptr_val, i32 1
+        %next_clause_end_ptr_val = getelementptr inbounds %Clause, %Clause* %clause_end_ptr_val, i32 1
+        %cond = icmp slt %next_clause_end_ptr_val, %clause_end_ptr
+        br i1 %cond, label %inner_loop, label %body
+
+exit:
+    ret void
+}
+
+define void @add_clause(%Solver* %solver, i8* %clause_ptr, i32 %clause_size) {
+    ; Add the clause to the solver
+    ; ...
+}
+
+define void @add_clauses(%Clause* %clauses, i32 %num_clauses) {
+    ; Parallelize the loop using OpenMP
+    %num_threads = 4 ; Example number of threads
+    %num_clauses_per_thread = sdiv %num_clauses, %num_threads
+    %remainder = srem %num_clauses, %num_threads
+    %start = alloca i32, align 4
+    %end = alloca i32, align 4
+    store i32 0, i32* %start
+    store i32 0, i32* %end
+    %i = alloca i32, align 4
+    store i32 0, i32* %i
+    br label %loop
+
+loop:
+    %i_val = load i32, i32* %i
+    %start_val = load i32, i32* %start
+    %end_val = load i32, i32* %end
+    %next_i_val = add i32 %i_val, 1
+    %next_start_val = add i32 %end_val, 1
+    %next_end_val = add i32 %next_start_val, %num_clauses_per_thread
+    %next_end_val = select i1 %remainder, add i32 %next_end_val, 1, i32 %next_end_val
+    store i32 %next_i_val, i32* %i
+    store i32 %next_start_val, i32* %start
+    store i32 %next_end_val, i32* %end
+    %cond = icmp slt i32 %end_val, %num_clauses
+    br i1 %cond, label %body, label %exit
+
+body:
+    ; Add the clauses to the solver
+    %clause_ptr = getelementptr inbounds %Clause, %Clause* %clauses, i32 %start_val
+    %clause_end_ptr = getelementptr inbounds %Clause, %Clause* %clauses, i32 %end_val
+    br label %inner_loop
+
+inner_loop:
+        %clause_ptr_val = phi %Clause* [ %clause_ptr, %body ], [ %next_clause_ptr_val, %inner_loop ]
+        %clause_end_ptr_val = phi %Clause* [ %clause_end_ptr, %body ], [ %next_clause_end_ptr_val, %inner_loop ]
+        %clause_ptr_i8 = bitcast %Clause* %clause_ptr_val to i8*
+        call void @add_clause(%Solver* %solver, i8* %clause_ptr_i8, i32 16)
+        %next_clause_ptr_val = getelementptr inbounds %Clause, %Clause* %clause_ptr_val, i32 1
+        %next_clause_end_ptr_val = getelementptr inbounds %Clause, %Clause* %clause_end_ptr_val, i32 1
+        %cond = icmp slt %next_clause_end_ptr_val, %clause_end_ptr
+        br i1 %cond, label %inner_loop, label %body
+
+exit:
+    ret void
+}
+
+define void @add_clause(%Solver* %solver, i8* %clause_ptr, i32 %clause_size) {
+    ; Add the clause to the solver
+    ; ...
+}
+
+
     loop:
         %i_val = load i32, i32* %i
         %start_val = load i32, i32* %start
@@ -869,3 +965,4 @@ error:
     ret i32 1
 
 @error_msg = private unnamed_addr constant [23 x i8] c"Memory allocation error\00"
+
