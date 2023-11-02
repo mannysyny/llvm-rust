@@ -26,6 +26,14 @@ fn parse_int(input: &str) -> IResult<&str, u32> {
     map(digit1, |s: &str| s.parse().unwrap())(input)
 }
 
+fn parse_float(input: &str) -> IResult<&str, Type> {
+    map(tag("float"), |_| Type::Float)(input)
+}
+
+fn parse_double(input: &str) -> IResult<&str, Type> {
+    map(tag("double"), |_| Type::Double)(input)
+}
+
 fn parse_named(input: &str) -> IResult<&str, &str> {
     preceded(char('%'), take_while1(|c| c != ' ' && c != ','))(input)
 }
@@ -36,14 +44,6 @@ fn parse_type_void(input: &str) -> IResult<&str, Type> {
 
 fn parse_type_int(input: &str) -> IResult<&str, Type> {
     map(preceded(tag("i"), parse_int), Type::Int)(input)
-}
-
-fn parse_type_float(input: &str) -> IResult<&str, Type> {
-    map(tag("float"), |_| Type::Float)(input)
-}
-
-fn parse_type_double(input: &str) -> IResult<&str, Type> {
-    map(tag("double"), |_| Type::Double)(input)
 }
 
 fn parse_type_pointer(input: &str) -> IResult<&str, Type> {
@@ -96,6 +96,22 @@ fn parse_type_function(input: &str) -> IResult<&str, Type> {
             char(')'),
         ),
         |(args, ret)| Type::Function(args, Box::new(ret)),
+    )(input)
+}
+
+fn parse_type(input: &str) -> IResult<&str, Type> {
+    alt((
+        parse_type_void,
+        parse_type_int,
+        parse_float,
+        parse_double,
+        parse_type_pointer,
+        parse_type_array,
+        parse_type_struct,
+        parse_type_function,
+        map(parse_named, Type::Named),
+    ))(input)
+}
     )(input)
 }
 
