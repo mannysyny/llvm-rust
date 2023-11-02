@@ -11,7 +11,7 @@ impl FromStr for DataLayout {
             Some("e") => Endianness::Little,
             Some("E") => Endianness::Big,
             Some(other) => return Err(format!("Invalid endianness: {}", other)),
-            None => return Err("Missing endianness".to_string()),
+            None => return Err("Missing endianness".to_string()), 
         };
 
         let stack_alignment = match parts.next().and_then(|s| s.parse().ok()) {
@@ -19,6 +19,11 @@ impl FromStr for DataLayout {
             None => return Err("Missing or invalid stack alignment".to_string()),
         };
 
+        let heap_alignment = match parts.next().and_then(|s| s.parse().ok()) {
+            Some(n) => n,
+            None => return Err("Missing or invalid heap alignment".to_string()),
+        };
+        
         let address_space = match parts.next().and_then(|s| s.parse().ok()) {
             Some(n) => n,
             None => return Err("Missing or invalid address space".to_string()),
