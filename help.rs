@@ -14,6 +14,12 @@ fn llvm_nl(input: &str) -> IResult<&str, &str> {
 fn llvm_ws(input: &str) -> IResult<&str, &str> {
     take_while1(|c: char| c.is_whitespace())(input)
 }
+fn parse_bool(input: &str) -> IResult<&str, bool> {
+    alt((
+        map_res(tag("true"), |_| Ok(true)),
+        map_res(tag("false"), |_| Ok(false)),
+    ))(input)
+}
 
 #[derive(Debug)]
 pub enum Operand {
