@@ -96,6 +96,86 @@ pub enum Instruction {
         dest: String,
         alloca_type: Type,
     },
+    GetElementPtr {
+        dest: String,
+        pointer: String,
+        indices: Vec<String>,
+    },
+    Phi {
+        dest: String,
+        entries: Vec<(String, String)>,
+    },
+}
+
+impl Instruction {
+    pub fn to_string(&self) -> String {
+        match self {
+            Instruction::Add { dest, op1, op2 } => format!("{} = add i32 {}, {}", dest, op1, op2),
+            Instruction::Sub { dest, op1, op2 } => format!("{} = sub i32 {}, {}", dest, op1, op2),
+            Instruction::Mul { dest, op1, op2 } => format!("{} = mul i32 {}, {}", dest, op1, op2),
+            Instruction::Div { dest, op1, op2 } => format!("{} = div i32 {}, {}", dest, op1, op2),
+            Instruction::ICmp { dest, predicate, op1, op2 } => {
+                let predicate_str = match predicate {
+                    LLVMIntPredicate::LLVMIntEQ => "eq",
+                    LLVMIntPredicate::LLVMIntNE => "ne",
+                    LLVMIntPredicate::LLVMIntUGT => "ugt",
+                    LLVMIntPredicate::LLVMIntUGE => "uge",
+                    LLVMIntPredicate::LLVMIntULT => "ult",
+                    LLVMIntPredicate::LLVMIntULE => "ule",
+                    LLVMIntPredicate::LLVMIntSGT => "sgt",
+                    LLVMIntPredicate::LLVMIntSGE => "sge",
+                    LLVMIntPredicate::LLVMIntSLT => "slt",
+                    LLVMIntPredicate::LLVMIntSLE => "sle",
+                };
+                format!("{} = icmp {} i32 {}, {}", dest, predicate_str, op1, op2)
+            },
+            Instruction::FCmp { dest, predicate, op1, op2 } => {
+                let predicate_str = match predicate {
+                    LLVMRealPredicate::LLVMRealOEQ => "oeq",
+                    LLVMRealPredicate::LLVMRealOGT => "ogt",
+                    LLVMRealPredicate::LLVMRealOGE => "oge",
+                    LLVMRealPredicate::LLVMRealOLT => "olt",
+                    LLVMRealPredicate::LLVMRealOLE => "ole",
+                    LLVMRealPredicate::LLVMRealONE => "one",
+                    LLVMRealPredicate::LLVMRealORD => "ord",
+                    LLVMRealPredicate::LLVMRealUNO => "uno",
+                    LLVMRealPredicate::LLVMRealUEQ => "ueq",
+                    LLVMRealPredicate::LLVMRealUGT => "ugt",
+                    LLVMRealPredicate::LLVMRealUGE => "uge",
+                    LLVMRealPredicate::LLVMRealULT => "ult",
+                    LLVMRealPredicate::LLVMRealULE => "ule",
+                    LLVMRealPredicate::LLVMRealUNE => "une",
+                };
+                format!("{} = fcmp {} double {}, {}", dest, predicate_str, op1, op2)
+            },
+            Instruction::Ret { value } => format!("ret i32 {}", value),
+            Instruction::Br { label } => format!("br label %{}", label),
+            Instruction::CondBr { condition, true_label, false_label } => {
+                format!("br i1 {}, label %{}, label %{}", condition, true_label, false_label)
+            },
+            Instruction::Call { dest, function, arguments } => {
+                let args_str = arguments.join(", ");
+                format!("{} = call i32 @{}({})", dest, function, args_str)
+            },
+            Instruction::Load { dest, pointer } => format!("{} = load i32, i32* {}", dest, pointer),
+            Instruction::Store { value, pointer } => format!("store i32 {}, i32* {}", value, pointer),
+            Instruction::Alloca { dest, alloca_type } => {
+                let alloca_type_str = match alloca_type {
+                    Type::Int(_) => "i32",
+                    _ => unimplemented!(),
+                };
+                format!("{} = alloca {}, align 4", dest, alloca_type_str)
+            },
+            Instruction::GetElementPtr { dest, pointer, indices } => {
+                let indices_str = indices.join(", ");
+                format!("{} = getelementptr i32, i32* {}, i32 {}", dest, pointer, indices_str)
+            },
+            Instruction::Phi { dest, entries } => {
+                let entries_str = entries.iter().map(|(value, label)| format!("[{}, %{}]", value, label)).collect::<Vec<_>>().join(", ");
+                format!("{} = phi i32 {}", dest, entries_str)
+            },
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

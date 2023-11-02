@@ -22,7 +22,7 @@ pub enum Type<'a> {
     Metadata,
 }
 
-fn parse_int(input: &str) -> IResult<&str, u32> {
+fn parse_int(input: &str) -> IResult<&str, u32> ;{
     map(digit1, |s: &str| s.parse().unwrap())(input)
 }
 
